@@ -2,4 +2,3 @@ Django==5.2.8
 cryptography>=42.0.0
 psycopg[binary]>=3.2,<4.0
 python-dotenv>=1.0,<2.0
-pymongo>=4.10,<5.0
