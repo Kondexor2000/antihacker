@@ -16,6 +16,17 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
+### Konfiguracja SQLite
+
+PostgreSQL pozostaje domyślną bazą aplikacji. Aby skonfigurować dodatkowe połączenie
+PostgreSQL, skopiuj `.env.example` do `.env` i uzupełnij zmienne `POSTGRES_*`.
+Połączenie jest dostępne w Django pod aliasem `default`.
+
+Jeżeli zdecydujesz się używać SQLite, stosuj poniższą komendę.
+```powershell
+python manage.py migrate --database=sqlite
+```
+
 ## HTTPS i OpenSSL
 
 Komenda tworzy lokalne CA oraz certyfikat serwera w formacie PEM zgodnym z OpenSSL:
