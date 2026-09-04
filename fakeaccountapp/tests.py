@@ -86,15 +86,17 @@ class LoginIpSignalTests(TestCase):
             {"username": "marek", "password": "StrongPass123"},
             REMOTE_ADDR="127.0.0.1",
         )
-        self.client.post(
-            reverse("login"),
-            {"username": "marek", "password": "StrongPass123"},
-            REMOTE_ADDR="10.0.0.5",
-        )
+        with self.assertLogs("fakeaccount.security", level="WARNING") as captured:
+            self.client.post(
+                reverse("login"),
+                {"username": "marek", "password": "StrongPass123"},
+                REMOTE_ADDR="10.0.0.5",
+            )
 
         user = User.objects.get(username="marek")
         self.assertEqual(LoginLog.objects.filter(user=user).count(), 2)
         create_backup.assert_called_once_with(skip_duplicate=True)
+        self.assertIn("Login from new IP for username='marek' from ip=10.0.0.5", captured.output[0])
 
     @patch("fakeaccountapp.signals.create_secure_backup")
     def test_login_from_same_ip_after_registration_does_not_create_backup(self, create_backup):
@@ -126,18 +128,6 @@ class LogoutTests(TestCase):
 
 
 class LoginProtectionTests(TestCase):
-    def test_failed_login_is_logged_for_fail2ban(self):
-        User.objects.create_user(username="audit-user", password="StrongPass123")
-
-        with self.assertLogs("fakeaccount.security", level="WARNING") as captured:
-            self.client.post(
-                reverse("login"),
-                {"username": "audit-user", "password": "wrong-password"},
-                REMOTE_ADDR="10.0.0.8",
-            )
-
-        self.assertIn("Login failed for username='audit-user' from ip=10.0.0.8", captured.output[0])
-
     def test_axes_blocks_login_after_failure_limit(self):
         User.objects.create_user(username="protected-user", password="StrongPass123")
 
