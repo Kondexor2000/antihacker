@@ -1,8 +1,13 @@
 from django.contrib.auth.signals import user_logged_in
+from django.contrib.auth.signals import user_login_failed
 from django.dispatch import receiver
+import logging
 
 from .backup import create_secure_backup
 from .models import LoginLog
+
+
+security_logger = logging.getLogger("fakeaccount.security")
 
 
 def get_client_ip(request):
@@ -24,3 +29,10 @@ def log_user_login(sender, request, user, **kwargs):
 
     if previous_login and previous_login.ip_address != ip:
         create_secure_backup(skip_duplicate=True)
+
+
+@receiver(user_login_failed)
+def log_failed_login(sender, credentials, request, **kwargs):
+    ip = get_client_ip(request)
+    username = credentials.get("username", "<unknown>")
+    security_logger.warning("Login failed for username=%r from ip=%s", username, ip or "<unknown>")

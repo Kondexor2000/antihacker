@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'axes',
     'fakeaccountapp.apps.FakeaccountappConfig',
 ]
 
@@ -67,6 +68,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -156,3 +158,38 @@ LOGIN_REDIRECT_URL = '/admin/'
 LOGIN_URL = '/login/'
 LOGOUT_REDIRECT_URL = '/login/'
 SECURE_BACKUP_DIR = BASE_DIR / 'secure_backups'
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1
+AXES_RESET_ON_SUCCESS = True
+
+FAIL2BAN_LOGFILE = os.environ.get("FAIL2BAN_LOGFILE", str(BASE_DIR / "security.log"))
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "fail2ban": {
+            "format": "{asctime} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "fail2ban_file": {
+            "class": "logging.FileHandler",
+            "filename": FAIL2BAN_LOGFILE,
+            "formatter": "fail2ban",
+            "encoding": "utf-8",
+        },
+    },
+    "loggers": {
+        "fakeaccount.security": {
+            "handlers": ["fail2ban_file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}

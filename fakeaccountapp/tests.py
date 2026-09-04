@@ -115,11 +115,48 @@ class LoginIpSignalTests(TestCase):
 class LogoutTests(TestCase):
     def test_logout_accepts_get_request(self):
         User.objects.create_user(username="logout-user", password="StrongPass123")
-        self.client.login(username="logout-user", password="StrongPass123")
+        self.client.post(
+            reverse("login"),
+            {"username": "logout-user", "password": "StrongPass123"},
+        )
 
         response = self.client.get(reverse("logout"))
 
         self.assertRedirects(response, "/login/")
+
+
+class LoginProtectionTests(TestCase):
+    def test_failed_login_is_logged_for_fail2ban(self):
+        User.objects.create_user(username="audit-user", password="StrongPass123")
+
+        with self.assertLogs("fakeaccount.security", level="WARNING") as captured:
+            self.client.post(
+                reverse("login"),
+                {"username": "audit-user", "password": "wrong-password"},
+                REMOTE_ADDR="10.0.0.8",
+            )
+
+        self.assertIn("Login failed for username='audit-user' from ip=10.0.0.8", captured.output[0])
+
+    def test_axes_blocks_login_after_failure_limit(self):
+        User.objects.create_user(username="protected-user", password="StrongPass123")
+
+        for attempt in range(5):
+            response = self.client.post(
+                reverse("login"),
+                {"username": "protected-user", "password": "wrong-password"},
+                REMOTE_ADDR="10.0.0.8",
+            )
+            self.assertEqual(response.status_code, 200 if attempt < 4 else 429)
+
+        response = self.client.post(
+            reverse("login"),
+            {"username": "protected-user", "password": "StrongPass123"},
+            REMOTE_ADDR="10.0.0.8",
+        )
+
+        self.assertEqual(response.status_code, 429)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
 
 class NetworkConfigTests(TestCase):
@@ -146,7 +183,10 @@ class AdminBackupDownloadTests(TestCase):
 
     @patch("fakeaccountapp.views.decrypt_secure_backup", return_value=b'[{"model": "auth.user"}]')
     def test_staff_can_download_decrypted_backup(self, decrypt_backup):
-        self.client.login(username="staff", password="StrongPass123")
+        self.client.post(
+            reverse("login"),
+            {"username": "staff", "password": "StrongPass123"},
+        )
 
         response = self.client.get(reverse("download_decrypted_backup"))
 
