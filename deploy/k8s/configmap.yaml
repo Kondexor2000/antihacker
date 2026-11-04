@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fakeaccount-config
+  namespace: fakeaccount
+data:
+  DJANGO_DEBUG: "False"
+  DJANGO_ALLOWED_HOSTS: "fakeaccount.example.com"
+  DJANGO_CSRF_TRUSTED_ORIGINS: "https://fakeaccount.example.com"
+  DJANGO_TRUSTED_PROXY_IPS: ""
+  DJANGO_DATABASE: "postgres"
+  DJANGO_SECURE_SSL_REDIRECT: "False"
+  DJANGO_HSTS_SECONDS: "0"
+  POSTGRES_HOST: "postgres.example.internal"
+  POSTGRES_PORT: "5432"
+  SECURE_BACKUP_DIR: "/app/secure_backups"
+  BACKUP_ACTIVE_KEY_ID: "primary"
+  BACKUP_RETENTION_COUNT: "10"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fakeaccount-backups
+  namespace: fakeaccount
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi

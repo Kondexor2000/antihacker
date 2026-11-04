@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fakeaccount-backup-worker
+  namespace: fakeaccount
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fakeaccount-backup-worker
+  template:
+    metadata:
+      labels:
+        app: fakeaccount-backup-worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: ghcr.io/your-org/fakeaccount:latest
+          imagePullPolicy: IfNotPresent
+          command: ["python", "manage.py", "process_backups"]
+          envFrom:
+            - configMapRef:
+                name: fakeaccount-config
+            - secretRef:
+                name: fakeaccount-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: backups
+              mountPath: /app/secure_backups
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: backups
+          persistentVolumeClaim:
+            claimName: fakeaccount-backups

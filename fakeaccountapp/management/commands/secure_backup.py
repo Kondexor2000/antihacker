@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from fakeaccountapp.backup import create_secure_backup, decrypt_secure_backup
 
@@ -17,11 +17,19 @@ class Command(BaseCommand):
             action="store_true",
             help="Create a backup even when current database dump is unchanged.",
         )
+        parser.add_argument(
+            "--input",
+            help="Decrypt this specific backup file (requires --decrypt).",
+        )
 
     def handle(self, *args, **options):
         if options["decrypt"]:
-            self.stdout.write(decrypt_secure_backup().decode("utf-8"))
+            self.stdout.write(
+                decrypt_secure_backup(options["input"]).decode("utf-8")
+            )
             return
+        if options["input"]:
+            raise CommandError("--input can only be used with --decrypt.")
 
         result = create_secure_backup(skip_duplicate=not options["force"])
 

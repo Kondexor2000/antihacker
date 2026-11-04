@@ -18,6 +18,9 @@ runhttps.status.log
 server*.log
 server*.out
 server*.err
+security.log
+runtime-logs/
+staticfiles/
 
 # Local certificates and backups
 certs/
@@ -27,6 +30,8 @@ secure_backups/
 .env
 .env.*
 !.env.example
+!.env.compose.example
+deploy/k8s/secrets.env
 
 # Editor/OS files
 .idea/

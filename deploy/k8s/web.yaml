@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fakeaccount-web
+  namespace: fakeaccount
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fakeaccount-web
+  template:
+    metadata:
+      labels:
+        app: fakeaccount-web
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: web
+          image: ghcr.io/your-org/fakeaccount:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - python manage.py migrate --noinput && exec gunicorn fakeaccount.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile - --error-logfile -
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: fakeaccount-config
+            - secretRef:
+                name: fakeaccount-secrets
+          readinessProbe:
+            httpGet:
+              path: /healthz/
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /livez/
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: backups
+              mountPath: /app/secure_backups
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: backups
+          persistentVolumeClaim:
+            claimName: fakeaccount-backups
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fakeaccount-web
+  namespace: fakeaccount
+spec:
+  selector:
+    app: fakeaccount-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fakeaccount-web
+  namespace: fakeaccount
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - fakeaccount.example.com
+      secretName: fakeaccount-tls
+  rules:
+    - host: fakeaccount.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fakeaccount-web
+                port:
+                  name: http

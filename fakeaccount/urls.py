@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.contrib.staticfiles.views import serve as serve_static
@@ -22,11 +23,17 @@ from django.urls import path
 from fakeaccountapp import views
 
 urlpatterns = [
+    path('livez/', views.livez, name='livez'),
+    path('healthz/', views.healthz, name='healthz'),
     path('admin/download-backup/', views.download_decrypted_backup, name='download_decrypted_backup'),
     path('admin/', admin.site.urls),
+    path('account/', views.account_home, name='account_home'),
     path('register/', views.register, name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
-    # runhttps is a development server and must serve the React build when DEBUG=False.
-    path('static/<path:path>', serve_static, {"insecure": True}),
 ]
+
+if settings.DEBUG:
+    urlpatterns.append(
+        path("static/<path:path>", serve_static, {"insecure": True})
+    )

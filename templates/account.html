@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Konto | FakeAccount</title>
+</head>
+<body>
+  <main>
+    <h1>Witaj, {{ request.user.get_username }}</h1>
+    <p>Jesteś zalogowany.</p>
+    <section aria-labelledby="backup-status-heading">
+      <h2 id="backup-status-heading">Status kopii bezpieczeństwa</h2>
+      {% if backup_event %}
+        {% if backup_event.status == "pending" %}
+          <p>Żądanie kopii oczekuje w kolejce. Logowanie działa niezależnie od tego zadania.</p>
+        {% elif backup_event.status == "processing" %}
+          <p>Kopia jest właśnie tworzona.</p>
+        {% elif backup_event.status == "succeeded" %}
+          <p>Ostatnie zadanie tworzenia kopii zakończyło się pomyślnie.</p>
+        {% else %}
+          <p>Nie udało się utworzyć kopii. Zespół utrzymujący system został powiadomiony.</p>
+        {% endif %}
+        <p>Ostatnia zmiana: <time datetime="{{ backup_event.updated_at|date:'c' }}">{{ backup_event.updated_at }}</time></p>
+      {% else %}
+        <p>Nie ma jeszcze żądania utworzenia kopii dla tego konta.</p>
+      {% endif %}
+    </section>
+    {% if request.user.is_staff %}
+      <p><a href="{% url 'admin:index' %}">Panel administracyjny</a></p>
+    {% endif %}
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit">Wyloguj</button>
+    </form>
+  </main>
+</body>
+</html>

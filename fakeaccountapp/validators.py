@@ -1,7 +1,9 @@
-import re
+import unicodedata
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+
+from .models import UsernameIdentity
 
 User = get_user_model()
 
@@ -12,7 +14,7 @@ def normalize_username(username: str) -> str:
     oraz usuwa znaki specjalne.
     """
 
-    username = username.lower().strip()
+    username = unicodedata.normalize("NFKC", username).casefold().strip()
 
     replacements = {
         "0": "o",
@@ -29,7 +31,7 @@ def normalize_username(username: str) -> str:
         username = username.replace(old, new)
 
     # usunięcie wszystkiego poza literami i cyframi
-    username = re.sub(r"[^a-z0-9]", "", username)
+    username = "".join(character for character in username if character.isalnum())
 
     return username
 
@@ -40,8 +42,17 @@ def validate_username_uniqueness(username: str):
     """
 
     normalized_new = normalize_username(username)
+    if not normalized_new:
+        raise ValidationError("Nazwa użytkownika musi zawierać literę lub cyfrę.")
 
-    existing_users = User.objects.values_list("username", flat=True)
+    if UsernameIdentity.objects.filter(normalized_username=normalized_new).exists():
+        raise ValidationError("Ta nazwa użytkownika jest zbyt podobna do istniejącego konta.")
+
+    claimed_user_ids = UsernameIdentity.objects.values("user_id")
+    existing_users = User.objects.exclude(pk__in=claimed_user_ids).values_list(
+        "username",
+        flat=True,
+    )
 
     for existing_username in existing_users:
         normalized_existing = normalize_username(existing_username)
