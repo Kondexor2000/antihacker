@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import BackupEvent, LoginLog
+from .models import BackupEvent, LoginLog, ProjectMetadata
+
+
+@admin.register(ProjectMetadata)
+class ProjectMetadataAdmin(admin.ModelAdmin):
+    list_display = ("project_name", "may_support_military")
+    list_filter = ("may_support_military",)
+    search_fields = ("project_name", "military_support_rationale")
 
 
 @admin.register(LoginLog)

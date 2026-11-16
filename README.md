@@ -18,20 +18,24 @@ python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
 Put the generated value in `DJANGO_SECRET_KEY` in `.env`. Keep it private and
-stable; in development it also derives the fallback backup key. Then install,
-migrate, and start Django:
+stable; in development it also derives the fallback backup key. Keep
+`DJANGO_DEBUG=True` for local development, as in `.env.example`. Then install,
+migrate, create an administrator account, and start Django:
 
 ```powershell
 python -m pip install -r requirements.txt
 python manage.py migrate
+python manage.py createsuperuser
 python manage.py runserver 127.0.0.1:8000
 ```
 
 Open <http://127.0.0.1:8000/register/> to create an account. SQLite is the
 default database. Run `python manage.py test` to execute the test suite.
 The sign-in form is at `/login/`; successful sign-in goes to `/account/`.
-Only staff users can access Django admin and download backups. Logout from the
-account page uses POST and is protected by CSRF.
+Sign in to Django admin at <http://127.0.0.1:8000/admin/> with the
+superuser you created above. Only staff users can access Django admin and
+download backups. Logout from the account page uses POST and is protected by
+CSRF.
 The username-identity migration stops with a clear error if existing account
 names normalize to the same value; rename those accounts before retrying it.
 
@@ -181,6 +185,17 @@ Open <https://127.0.0.1:8000/register/>. The browser will warn until the local
 CA in `certs/ca.crt` is trusted. For another device on a private network, add
 the computer's LAN IP to both `DJANGO_ALLOWED_HOSTS` and
 `DJANGO_CSRF_TRUSTED_ORIGINS`, then generate a certificate for that address:
+
+Add the address to the comma-separated values in `.env` (preserve any other
+hosts or origins you need). For example:
+
+```text
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.22
+DJANGO_CSRF_TRUSTED_ORIGINS=https://127.0.0.1:8000,https://localhost:8000,https://192.168.1.22:8000
+```
+
+The trusted origin must include the scheme and port, but no path. Restart the
+development server after changing `.env`.
 
 ```powershell
 python manage.py generate_cert --ip 192.168.1.22

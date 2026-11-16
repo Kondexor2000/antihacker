@@ -25,7 +25,7 @@ from django.utils import timezone
 from .backup import create_secure_backup, decrypt_secure_backup, get_backup_paths
 from .forms import RegistrationForm
 from .middleware import TrustedProxyMiddleware
-from .models import BackupEvent, LoginLog, UsernameIdentity
+from .models import BackupEvent, LoginLog, ProjectMetadata, UsernameIdentity
 from .network import get_private_ip_addresses
 from .services import get_client_ip, process_backup_events
 
@@ -57,6 +57,17 @@ class ConfigurationTests(TestCase):
         self.assertEqual(settings.SESSION_COOKIE_SECURE, not settings.DEBUG)
         self.assertEqual(settings.CSRF_COOKIE_SAMESITE, "Lax")
         self.assertEqual(settings.CSRF_COOKIE_SECURE, not settings.DEBUG)
+
+
+class ProjectMetadataTests(TestCase):
+    def test_military_support_potential_is_recorded(self):
+        metadata = ProjectMetadata.objects.get(project_name="FakeAccount")
+        rationale = metadata.military_support_rationale.casefold()
+
+        self.assertTrue(metadata.may_support_military)
+        self.assertIn("encrypted backups", rationale)
+        self.assertIn("different from its previously recorded ip", rationale)
+        self.assertIn("decrypted", rationale)
 
 
 class RegistrationTests(TestCase):

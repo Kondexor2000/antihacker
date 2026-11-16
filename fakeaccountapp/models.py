@@ -3,6 +3,15 @@ from django.conf import settings
 from django.utils import timezone
 
 
+class ProjectMetadata(models.Model):
+    project_name = models.CharField(max_length=100, unique=True, default="FakeAccount")
+    may_support_military = models.BooleanField(default=False)
+    military_support_rationale = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.project_name
+
+
 class LoginLog(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     ip_address = models.GenericIPAddressField()
